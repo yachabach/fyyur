@@ -97,8 +97,4 @@ class Show(db.Model):
     venue_id = db.Column(db.Integer, db.ForeignKey('Venue.id'))
     start_time = db.Column(db.DateTime, nullable=False)
     
-    artists = db.relationship('Artist', 
-                            secondary=Art_Show_MM, 
-                            backref=db.backref('Show', lazy=True))
-    
     

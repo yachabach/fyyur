@@ -3,22 +3,19 @@
 #----------------------------------------------------------------------------#
 
 import json
-import dateutil.parser
-import babel
+from dateutil.parser import *
+from flask_babel import Babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
-#from sqlalchemy import exc
+from sqlalchemy import exc
+
+# Allow migration
+from flask_migrate import Migrate
 import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
-from sqlalchemy import exc
-
-
-# Allow migration
-from flask_migrate import Migrate
-
 import sys
 
 
@@ -70,21 +67,8 @@ def aGenre(genreName):
     return rslt
     
 # Create a list of genres
-def genreList(itemId):
-    
-    rslt = [g[0] for g in \
-        db.session.query(Genre.name).join(Venue.genres).filter(Venue.id==itemId).all()]
-        
-    return rslt
-    
-# Add Artist associations to Shows
-def aArtist(artist_id):
-    rslt = db.session.query(Artist).filter_by(id=artist_id).first()
-    if rslt is None:
-        flash('Artist ' + artist_id + ' does not exist.')
-    else:
-        print('Genre is here', sys.stderr, flush=True)
-               
+def genreList(id):
+    rslt = ['Creating', 'a', 'list', 'of', 'genres']
     return rslt
 
 
@@ -132,15 +116,14 @@ def search_venues():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  
-  # response={
-    # "count": 1,
-    # "data": [{
-      # "id": 2,
-      # "name": "The Dueling Pianos Bar",
-      # "num_upcoming_shows": 0,
-    # }]
-  # }
+  response={
+    "count": 1,
+    "data": [{
+      "id": 2,
+      "name": "The Dueling Pianos Bar",
+      "num_upcoming_shows": 0,
+    }]
+  }
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
@@ -148,19 +131,19 @@ def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
 
-  sVenue = Venue.query.filter_by(id=venue_id).first()
+  sVenue = db.session.query(Venue).filter_by(id=venue_id).first()
   data = {
     "id": sVenue.id,
     "name": sVenue.name,
-    "genres": genreList(venue_id),
+    "genres": genreList(venue_id), #["Jazz", "Reggae", "Swing", "Classical", "Folk"],
     "address": sVenue.address,
     "city": sVenue.city,
     "state": sVenue.state,
     "phone": sVenue.phone,
-    "website": sVenue.website,
+    #"website": sVenue.website,
     "facebook_link": sVenue.facebook_link,
-    "seeking_talent": sVenue.seeking_talent,
-    "seeking_description": sVenue.seeking_description,
+    #"seeking_talent": True,
+    #"seeking_description": "We are on the lookout for a local artist to play every two weeks. Please call us.",
     "image_link": sVenue.image_link
   }
   
@@ -181,7 +164,6 @@ def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
-  #consol.log('Made it into Create for POST')
   
   newVenue = Venue()
   newVenue.name = request.form['name']
@@ -191,11 +173,7 @@ def create_venue_submission():
   newVenue.phone = request.form['phone']
   newVenue.image_link = request.form['image_link']
   newVenue.facebook_link = request.form['facebook_link']
-  newVenue.website = request.form['website']
-  newVenue.image_link = request.form['image_link']
-  newVenue.seeking_talent = request.form['seeking_talent']
-  newVenue.seeking_description = request.form['seeking_description']
-  
+
   genreList = request.form.getlist('genres')
   for G in genreList:
     newVenue.genres.append(aGenre(G))
@@ -464,29 +442,9 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
-  newShow = Show()
-  newShow.name = 'The Noname Show' #request.form['name']
-  newShow.start_time = request.form['start_time']
-  newShow.venue_id = request.form['venue_id']
-  
-  artist_id = request.form['artist_id']
-  aArtist = db.session.query(Artist).filter_by(id=artist_id).first()
-  if aArtist is None:
-    flash('Artist ' + artist_id + ' does not exist')
-  else:
-    newShow.artists.append(aArtist)
-  
-  try:
-    db.session.add(newShow)
-    db.session.commit()
-  # on successful db insert, flash success
-    flash('The Noname Show was successfully listed!')
 
-  except exc.IntegrityError:
-    db.session.rollback()
-    flash('The Noname Show could not be listed')
   # on successful db insert, flash success
-  #flash('Show was successfully listed!')
+  flash('Show was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Show could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
