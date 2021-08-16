@@ -193,7 +193,7 @@ def create_venue_submission():
   newVenue.facebook_link = request.form['facebook_link']
   newVenue.website = request.form['website']
   newVenue.image_link = request.form['image_link']
-  newVenue.seeking_talent = request.form['seeking_talent']
+  newVenue.seeking_talent = request.form['seeking_talent']=='y'
   newVenue.seeking_description = request.form['seeking_description']
   
   genreList = request.form.getlist('genres')
@@ -401,9 +401,36 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
+  
+  newArtist = Artist(
+    name = request.form['name'],
+    city = request.form['city'],
+    state = request.form['state'],
+    phone = request.form['phone'],
+    facebook_link = request.form['facebook_link'],
+    website_link = request.form['website_link'],
+    image_link = request.form['image_link'],
+    seeking_venue = request.form.get('seeking_venue')=='y',
+    seeking_description = request.form['seeking_description']
+  )
+  
+  genreList = request.form.getlist('genres')
+  for G in genreList:
+    newArtist.genres.append(aGenre(G))
+  
+  try:
+    db.session.add(newArtist)
+    db.session.commit()
+  # on successful db insert, flash success
+    flash('Artist ' + request.form['name'] + ' was successfully listed!')
+
+  except exc.IntegrityError:
+    db.session.rollback()
+    flash('Artist ' + request.form['name'] + ' could not be listed')
+    
 
   # on successful db insert, flash success
-  flash('Artist ' + request.form['name'] + ' was successfully listed!')
+  #flash('Artist ' + request.form['name'] + ' was successfully listed!')
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
   return render_template('pages/home.html')
