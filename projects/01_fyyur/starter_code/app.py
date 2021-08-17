@@ -13,7 +13,7 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
-from sqlalchemy import exc
+from sqlalchemy import exc, func
 
 
 # Allow migration
@@ -87,7 +87,33 @@ def aArtist(artist_id):
                
     return rslt
 
+# Create a dictionary from the list of tuples
+TestList = db.session.query(Venue.name, func.count(Show.id)).\
+    outerjoin(Show, Show.start_time > datetime.now()).\
+    group_by(Venue.name, Venue.id).all()
 
+def TupToDict(tupleList, col_names):
+    
+    #Create a dictionary template
+    tmpDict = {}
+    rslt = []
+    
+    # For each tuple in the list
+    for t in tupleList:
+        i=0
+        
+        #For each item in the tuple create a key:value pair
+        for item in t:
+            tmpDict[col_names[i]] = item
+            i+=1
+           
+        # Append new dict to the return list
+        rslt.append(tmpDict.copy())
+        
+    # Return a list of dictionaries
+    return rslt
+    
+    
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
@@ -104,27 +130,7 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
