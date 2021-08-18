@@ -45,7 +45,7 @@ class Venue(db.Model):
                                  
     # Format print statement for debugging    
     def __repr__(self):
-        return f'<Todo {self.id} {self.name}>'
+        return f'<Venue {self.id} {self.name}>'
   
      # Association table for Artists and Genres (Art_Gen)
 Art_Gen_MM = db.Table('Art_Gen_MM', 
@@ -87,7 +87,9 @@ class Artist(db.Model):
                             # secondary=Art_Show_MM, 
                             # backref=db.backref('Artists', lazy=True))
                             
-                            
+    # Format print statement for debugging    
+    def __repr__(self):
+        return f'<Artist {self.id} {self.name}>'                        
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 # Table for shows.

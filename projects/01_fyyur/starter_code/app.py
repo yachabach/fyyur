@@ -113,6 +113,33 @@ def TupToDict(tupleList, col_names):
     # Return a list of dictionaries
     return rslt
     
+# Return the number of shows for a given Artist or Venue
+#
+#   focus - 'Artist' (default), 'Venue
+#   tense - 'All' (default), 'Past', 'Future'
+#   
+def numShows(focus='Artist', tense='All', id=''):
+
+    # Test for inputs
+    if id=='':
+        return -1
+        
+    # Get the query object
+    if lower(focus)=='venue':
+        num = db.session.query(func.count(Show.id)).filter(Show.venue_id==id)
+    else:
+        num = db.session.query(func.count(Artist.id)).\
+                join(Show.artists).filter(Artist.id==1)
+    
+    # Modify object with appropriate filter
+    if lower(tense) == 'past':
+        num = num.filter(Show.start_time < datetime.now())
+    elif lower(tenst) == 'future':
+        num = num.filter(Show.start_time > datetime.now())
+        
+    # Return the resulting scalar
+    return num.scalar()
+                        
     
 #----------------------------------------------------------------------------#
 # Controllers.
@@ -235,16 +262,9 @@ def delete_venue(venue_id):
 @app.route('/artists')
 def artists():
   # TODO: replace with real data returned from querying the database
-  data=[{
-    "id": 4,
-    "name": "Guns N Petals",
-  }, {
-    "id": 5,
-    "name": "Matt Quevedo",
-  }, {
-    "id": 6,
-    "name": "The Wild Sax Band",
-  }]
+  rslt = db.session.query(Artist.id, Artist.name)
+  data = TupToDict(rslt, ['id', 'name'])
+  
   return render_template('pages/artists.html', artists=data)
 
 @app.route('/artists/search', methods=['POST'])
