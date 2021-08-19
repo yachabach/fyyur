@@ -77,6 +77,7 @@ def genreList(itemId):
         
     return rslt
     
+#--------------------------
 # Add Artist associations to Shows
 def aArtist(artist_id):
     rslt = db.session.query(Artist).filter_by(id=artist_id).first()
@@ -87,54 +88,60 @@ def aArtist(artist_id):
                
     return rslt
 
+#-----------------------
 # Create a dictionary from the list of tuples
 TestList = db.session.query(Venue.name, func.count(Show.id)).\
     outerjoin(Show, Show.start_time > datetime.now()).\
     group_by(Venue.name, Venue.id).all()
 
-def TupToDict(tupleList, col_names):
+def TupToDict(tup, col_names):
     
     #Create a dictionary template
-    tmpDict = {}
-    rslt = []
-    
-    # For each tuple in the list
-    for t in tupleList:
-        i=0
-        
-        #For each item in the tuple create a key:value pair
-        for item in t:
-            tmpDict[col_names[i]] = item
-            i+=1
-           
-        # Append new dict to the return list
-        rslt.append(tmpDict.copy())
-        
-    # Return a list of dictionaries
+    rslt = {}
+ 
+    #For each item in the tuple create a key:value pair
+    i=0
+    for item in tup:
+        rslt[col_names[i]] = item
+        i+=1
+
+    # Return a dictionary
     return rslt
-    
+
+#---------------------------
+#Take a list of tuples and create a list of 
+#dictionaries
+def TupListToDict(tupList, col_names):
+
+    rslt = []
+    for t in tupList:
+        rslt.append(TupToDict(t, col_names))
+        
+    return rslt
+
+#-------------------------    
 # Return the number of shows for a given Artist or Venue
 #
 #   focus - 'Artist' (default), 'Venue
 #   tense - 'All' (default), 'Past', 'Future'
 #   
-def numShows(focus='Artist', tense='All', id=''):
+def numShows(id='',focus='Artist', tense='All'):
 
     # Test for inputs
     if id=='':
         return -1
         
     # Get the query object
-    if lower(focus)=='venue':
+    if focus.lower()=='venue':
         num = db.session.query(func.count(Show.id)).filter(Show.venue_id==id)
     else:
         num = db.session.query(func.count(Artist.id)).\
                 join(Show.artists).filter(Artist.id==1)
     
     # Modify object with appropriate filter
-    if lower(tense) == 'past':
+    if tense.lower() == 'past':
         num = num.filter(Show.start_time < datetime.now())
-    elif lower(tenst) == 'future':
+    elif tense.lower() == 'future':
         num = num.filter(Show.start_time > datetime.now())
         
     # Return the resulting scalar
@@ -158,7 +165,21 @@ def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
   
-  return render_template('pages/venues.html', areas=data);
+  areaList = []
+    
+  #Gather the list of areas (cities)
+  cityList = db.session.query(Venue.city, Venue.state).distinct().all()
+  
+  # Create a dictionary for each city
+  areaList = TupListToDict(cityList, ['city', 'state'])
+  for area in areaList:
+    venueList = db.session.query(Venue.id, Venue.name).\
+                filter(Venue.city==area['city']).all()
+    area['venues']=TupListToDict(venueList, ['id', 'name'])
+    for v in area['venues']:
+        v['num_upcoming_shows'] = numShows(v['id'], 'Venue', 'future')
+      
+  return render_template('pages/venues.html', areas=areaList);
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -166,14 +187,16 @@ def search_venues():
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
   
-  # response={
-    # "count": 1,
-    # "data": [{
-      # "id": 2,
-      # "name": "The Dueling Pianos Bar",
-      # "num_upcoming_shows": 0,
-    # }]
-  # }
+  search_term= '%' + request.form.get('search_term', '') + '%'
+  matchVenues = db.session.query(Venue.id, Venue.name).\
+        filter(Venue.name.ilike(search_term)).all()
+        
+  response = {}
+  response['count']=len(matchVenues)
+  response['data'] = TupListToDict(matchVenues, ['id', 'name'])
+  for v in response['data']:
+    v['num_upcoming_shows'] = numShows(v['id'], 'Venue', 'future')
+  
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
